@@ -6,27 +6,8 @@ import pygame
 import os
 from random import randint
 
-# Add string to list
-# one = False
-# i = 0
-# while one == False:
-#     if s[i] == "1":
-#         one = True
-#         break
-#     i += 1
-# for c in s[i:]:
-#     li.append(c)
-    
-#function to check if string contains 1's and 0's only
-# def check_bin(string):
-#     for i in string:
-#         if i != '0' or i != '1':
-#             print("Not a binary number")
-#             return ""
-#     return string
-    
 #recursive function that takes in arguments (string of binary number, length of string, current position, sum)
-#returns int of decimal equivalent of binary
+#returns string
 def bin_to_dec(li, n, s):
     #base condition
     if (n == 0):
@@ -37,28 +18,15 @@ def bin_to_dec(li, n, s):
         _sum += (2**(l-n))
     return str(bin_to_dec(li, n-1, s + _sum))
 
-# # prints out the binary value
-# def printb(li):
-#     string = ""
-#     for i in li:
-#         string += i
-#     print("Binary: ", string)
+#shifts one bit to the right
+def right_shift(li):  
+    del li[-1]
+    li.insert(0, "0")
 
-# # prints out the decimal value
-# def printd(li):
-#     print("Decimal: ", bin_to_dec(li, len(li), 0))
-
-# #shifts one bit to the right
-# def right_shift(li):  
-#     del li[-1]
-#     if not li:
-#         li.append("0")
-
-# # shifts one bit to the left
-# def left_shift(li):
-#     if len(li) == 1 and li[0] == "0":
-#         return
-#     li.append("0")
+# shifts one bit to the left
+def left_shift(li):
+    del li[0]
+    li.append("0")
 
 #switches 1 and 0 in li
 def switch_digit(index):
@@ -105,6 +73,7 @@ def print_question(num, text_color, bg_color ,screen):
 white = (255, 255, 255)
 black = (0, 0, 0)
 grey = (240, 240, 240)
+dark_grey = (200, 200, 200)
 green = (0, 255, 0)
 
 # record high score
@@ -118,10 +87,8 @@ pygame.init()
 
 page = "menu" # menu, instructions, easy_mode, hard_mode, end_screen, calculator, 
 
-#initialize list to 16 "0"s
-li = []  #list that stores binary digits
-# for i in range(8):
-#     li.append("0")
+#list that stores binary digits
+li = []  
 
 # dimensions
 BORDER_W = 50
@@ -183,11 +150,28 @@ class Button:
     def draw(self, screen):
         screen.blit(self.button_surface, self.rect)
         screen.blit(self.text, self.textRect)
+
+    def set_bg_color(self, color):
+        self.bg_color = color
+        self.text = self.font.render(self.name, True, black, self.bg_color)
+        self.button_surface.fill(self.bg_color)
+
 # --------------------------------------------
 
 # # create digit sprites group and add Digit objects
 digit_sprites = pygame.sprite.Group()
 separation = 4          # distance between digits
+#if mouse is over button and is clicked, go to next page
+def clicked_over_digit(m):
+    global digit_sprites
+    for _digit in digit_sprites:
+        left = _digit.rect.left
+        right = left + _digit.rect.width
+        top = _digit.rect.top
+        bottom = top + _digit.rect.height
+        if (left <= m[0] <= right) and (top <= m[1] <= bottom): # is mouse over digit
+            switch_digit(_digit.index)
+            _digit.update()
 
 # create button sprites group and add Button objects
 button_sprites = []
@@ -195,28 +179,70 @@ def set_objects(page):
     global button_sprites
     global digit_sprites
     button_sprites.clear()
+
     for sprite in digit_sprites:
         sprite.kill()
     if page == "menu":
-        button_sprites.append(Button("Easy", (WIDTH/2, HEIGHT/2+40), (150,40), "easy_mode"))
-        button_sprites.append(Button("Hard", (WIDTH/2, HEIGHT/2+90), (150,40), "hard_mode"))
+        buttonsize = (160, 40)
+        button_sprites.append(Button("Easy", (WIDTH/2, HEIGHT/2+10), buttonsize, "easy_mode"))
+        button_sprites.append(Button("Hard", (WIDTH/2, HEIGHT/2+60), buttonsize, "hard_mode"))
+        button_sprites.append(Button("Calculator", (WIDTH/2, HEIGHT/2+110), buttonsize, "calculator"))
+        button_sprites.append(Button("Quit Game", (WIDTH/2, HEIGHT/2+160), buttonsize, "quit"))
     elif page == "easy_mode" or page == "hard_mode" or page == "end_screen":
         button_sprites.append(Button("Menu", (85, HEIGHT-30), (150,40), "menu"))
+    elif page == "calculator":
+        button_sprites.append(Button("Menu", (85, HEIGHT-30), (150,40), "menu"))
+        button_sprites.append(Button(">>", (WIDTH/2+50, HEIGHT/2-100), (80,40), ""))
+        button_sprites.append(Button("<<", (WIDTH/2-50, HEIGHT/2-100), (80,40), ""))
+
+# change button color if mouse is hovering over
+def mouseover_button(m):
+    global button_sprites
+    for button in button_sprites:
+        left = button.rect.left
+        right = left + button.rect.width
+        top = button.rect.top
+        bottom = top + button.rect.height
+        if (left <= m[0] <= right) and (top <= m[1] <= bottom): # is mouse over button
+            button.set_bg_color(dark_grey)
+        else:
+            button.set_bg_color(grey)
+#if mouse is over button and is clicked, go to next page
+def clicked_over_button(m):
+    global page
+    global button_sprites
+    global digit_sprites
+    global li
+    for button in button_sprites:
+        left = button.rect.left
+        right = left + button.rect.width
+        top = button.rect.top
+        bottom = top + button.rect.height
+        if (left <= m[0] <= right) and (top <= m[1] <= bottom): # is mouse over button
+            if button.link != "":
+                set_objects(button.link)
+                page = button.link
+            else:
+                if button.name == ">>":
+                    right_shift(li)
+                elif button.name == "<<":
+                    left_shift(li)
+                digit_sprites.update()
+
 
 # clock
 clock = pygame.time.Clock()
-FPS = 30
-time = 2            # seconds
+time = 60           # seconds
 time_left = time   
+FPS = 30
 frame = 0           # for timer
+dp_time = 2*FPS     # how long to display bonus time for
+frame1 = dp_time    # for bonus time
 def bonus_time(d):
     if d == "easy_mode":
         return int(5)
     elif d == "hard_mode":
         return int(15)
-
-dp_time = 2*FPS     # how long to display bonus time for
-frame1 = dp_time    # for bonus time
 
 # generate random number
 new_randn = True
@@ -272,7 +298,9 @@ while running:
                         if button.link == "easy_mode":
                             diff = 8
                         elif button.link == "hard_mode":
-                            diff = 16
+                            diff = 12
+                        elif button.link == "calculator":
+                            diff = 16 
 
                         digits_width = (diff * img_zero.get_width()) + (diff-1) * separation
                         digit_x = WIDTH/2 - digits_width/2 
@@ -334,28 +362,12 @@ while running:
                     for _digit in digit_sprites:
                         _digit.update()
 
-                else:  # check for any buttons pressed
-                    for _digit in digit_sprites:
-                        left = _digit.rect.left
-                        right = left + _digit.rect.width
-                        top = _digit.rect.top
-                        bottom = top + _digit.rect.height
-                        if (left <= mouse[0] <= right) and (top <= mouse[1] <= bottom): # is mouse over digit
-                            switch_digit(_digit.index)
-                            _digit.update()
-                    
-                    for button in button_sprites:
-                        left = button.rect.left
-                        right = left + button.rect.width
-                        top = button.rect.top
-                        bottom = top + button.rect.height
-                        if (left <= mouse[0] <= right) and (top <= mouse[1] <= bottom): # is mouse over button
-                            if button.link == "menu":
-                                set_objects("menu")
-                                page = "menu"
+                else:  
+                    # check if mouse is clicked over any button or digit
+                    clicked_over_digit(mouse)
+                    clicked_over_button(mouse)
 
-        ans = bin_to_dec(li, len(li), 0)
-        
+        ans = bin_to_dec(li, len(li), 0) 
         # Draw background, print text
         if ans == currn:
             correct = True 
@@ -379,32 +391,44 @@ while running:
 
     # ------------- End Screen -------------
     elif page == "end_screen":
-        pygame.display.set_caption('Binary Game ' + str(WIDTH) + "x" + str(HEIGHT))
         # Did the user click the window close button?
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-            #checks if a mouse is clicked 
+            # check if a mouse is clicked over any button
             if event.type == pygame.MOUSEBUTTONDOWN:
-                for button in button_sprites:
-                    left = button.rect.left
-                    right = left + button.rect.width
-                    top = button.rect.top
-                    bottom = top + button.rect.height
-                    if (left <= mouse[0] <= right) and (top <= mouse[1] <= bottom): # is mouse over button
-                        set_objects(button.link)
-                        page = button.link
-                
-
+                clicked_over_button(mouse)
+           
         # print background
         screen.fill(white)
-
         # print score
         print_text("Score: " + str(score), black, white, 90, screen, WIDTH/2, HEIGHT/2, "c")
+    
+    # ------------- Calculator -------------
+    elif page == "calculator":
+        # Did the user click the window close button?
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # check if mouse is clicked over any button or digit
+                clicked_over_digit(mouse)
+                clicked_over_button(mouse)
+
+        bg_color = white
+        screen.fill(bg_color)
+        digit_sprites.draw(screen)
+        ans = bin_to_dec(li, len(li), 0)
+        print_text(ans, black, bg_color, 80, screen, WIDTH/2, HEIGHT-70, "c")
+
+    elif page == "quit":
+        running = False
 
     for button in button_sprites:   #print buttons
         button.draw(screen)
+    
+    mouseover_button(mouse)
+
     # Flip the display
     pygame.display.flip()
     clock.tick(FPS)
