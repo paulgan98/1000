@@ -4,6 +4,7 @@
 # In[1]:
 import pygame
 import os
+import os.path as path
 from random import randint
 
 #recursive function that takes in arguments (string of binary number, length of string, current position, sum)
@@ -76,16 +77,13 @@ grey = (240, 240, 240)
 dark_grey = (200, 200, 200)
 green = (0, 255, 0)
 
-# record high score
-# f = open("high_score.txt", "w")
-# print(os.path.isfile("high_score.txt"))
-# def write_hs(new_score):
-#     hs = 
+# background color
+bg_color = white
 
 #initialize pygame
 pygame.init()
 
-page = "menu" # menu, instructions, easy_mode, hard_mode, end_screen, calculator, 
+page = "menu" # menu, instructions, easy_mode, hard_mode, end_screen, calculator, credits
 
 #list that stores binary digits
 li = []  
@@ -105,27 +103,28 @@ img_folder = os.path.join(game_folder, 'sprites')
 # images
 img_zero = pygame.image.load(os.path.join(img_folder, 'zero.png'))
 img_one = pygame.image.load(os.path.join(img_folder, 'one.png'))
-
+scale_f = 1.2   #scale factor
+img_xy = (50,85)  # (img_zero.get_width, img_zero.get_height)
+img_big_zero = pygame.transform.scale(img_zero, (int(img_xy[0]*scale_f), int(img_xy[1]*scale_f)))
+img_big_one = pygame.transform.scale(img_one, (int(img_xy[0]*scale_f), int(img_xy[1]*scale_f)))
+        
 # ------------ class declarations ------------
 class Digit(pygame.sprite.Sprite):
     def __init__(self, num, index, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = img_zero
+        self.image = img_zero.copy()
         self.rect = self.image.get_rect()
         self.num = num
         self.index = index
         self.rect.left = x
         self.rect.top = y
- 
-    def set_image(self, i):
-        self.image = i
 
     def update(self):
         self.num = li[self.index]
         if self.num == "0":
-            self.image = img_zero
+            self.image = img_zero.copy()
         elif self.num == "1":
-            self.image = img_one
+            self.image = img_one.copy()
 
 class Button:
     def __init__(self, s, position, size, link):
@@ -178,26 +177,28 @@ button_sprites = []
 def set_objects(page):
     global button_sprites
     global digit_sprites
+    # global li
     button_sprites.clear()
-
     for sprite in digit_sprites:
         sprite.kill()
+    # li.clear()
     if page == "menu":
-        buttonsize = (160, 40)
-        button_sprites.append(Button("Easy", (WIDTH/2, HEIGHT/2+10), buttonsize, "easy_mode"))
-        button_sprites.append(Button("Hard", (WIDTH/2, HEIGHT/2+60), buttonsize, "hard_mode"))
-        button_sprites.append(Button("Calculator", (WIDTH/2, HEIGHT/2+110), buttonsize, "calculator"))
-        button_sprites.append(Button("Quit Game", (WIDTH/2, HEIGHT/2+160), buttonsize, "quit"))
+        buttonsize = (200, 40)
+        button_sprites.append(Button("Easy mode", (WIDTH/2, HEIGHT/2+10), buttonsize, "easy_mode"))
+        button_sprites.append(Button("Hard mode", (WIDTH/2, HEIGHT/2+60), buttonsize, "hard_mode"))
+        button_sprites.append(Button("Calculator mode", (WIDTH/2, HEIGHT/2+110), buttonsize, "calculator"))
+        button_sprites.append(Button("Quit", (WIDTH/2, HEIGHT/2+160), buttonsize, "quit"))
     elif page == "easy_mode" or page == "hard_mode" or page == "end_screen":
-        button_sprites.append(Button("Menu", (85, HEIGHT-30), (150,40), "menu"))
+        button_sprites.append(Button("Main Menu", (85, HEIGHT-30), (150,40), "menu"))
     elif page == "calculator":
-        button_sprites.append(Button("Menu", (85, HEIGHT-30), (150,40), "menu"))
+        button_sprites.append(Button("Main Menu", (85, HEIGHT-30), (150,40), "menu"))
         button_sprites.append(Button(">>", (WIDTH/2+50, HEIGHT/2-100), (80,40), ""))
         button_sprites.append(Button("<<", (WIDTH/2-50, HEIGHT/2-100), (80,40), ""))
 
 # change button color if mouse is hovering over
 def mouseover_button(m):
     global button_sprites
+    global digit_sprites
     for button in button_sprites:
         left = button.rect.left
         right = left + button.rect.width
@@ -207,6 +208,7 @@ def mouseover_button(m):
             button.set_bg_color(dark_grey)
         else:
             button.set_bg_color(grey)
+
 #if mouse is over button and is clicked, go to next page
 def clicked_over_button(m):
     global page
@@ -386,7 +388,16 @@ while running:
             print_text("+" + str(bt), green, bg_color, 30, screen, WIDTH-53, 70, "l")
             frame1 += 1
 
-        # render sprites
+        # loop through digit sprites, check if mouse is over any digit
+        for sprite in digit_sprites:
+            left = sprite.rect.left
+            right = left + sprite.rect.width
+            top = sprite.rect.top
+            bottom = top + sprite.rect.height
+            if (left <= mouse[0] <= right) and (top <= mouse[1] <= bottom) and not correct: # is mouse over digit
+                pygame.draw.rect(screen, grey, sprite.rect) # draw grey box around digit
+
+        # draw digits
         digit_sprites.draw(screen)
 
     # ------------- End Screen -------------
@@ -417,6 +428,14 @@ while running:
 
         bg_color = white
         screen.fill(bg_color)
+        # loop through digit sprites, check if mouse is over any digit
+        for sprite in digit_sprites:
+            left = sprite.rect.left
+            right = left + sprite.rect.width
+            top = sprite.rect.top
+            bottom = top + sprite.rect.height
+            if (left <= mouse[0] <= right) and (top <= mouse[1] <= bottom): # is mouse over digit
+                pygame.draw.rect(screen, grey, sprite.rect) # draw grey box around digit
         digit_sprites.draw(screen)
         ans = bin_to_dec(li, len(li), 0)
         print_text(ans, black, bg_color, 80, screen, WIDTH/2, HEIGHT-70, "c")
@@ -433,6 +452,7 @@ while running:
     pygame.display.flip()
     clock.tick(FPS)
 
-f.close()
 # Done! Time to quit.
 pygame.quit()
+
+# %%
